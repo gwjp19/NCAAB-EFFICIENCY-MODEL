@@ -6,6 +6,7 @@ cursor.execute("""
   SELECT 
     game_id,
     team_id,
+    points,
     feild_goals_attempted,
     offensive_rebounds,
     total_renounds,
