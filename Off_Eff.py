@@ -17,10 +17,13 @@ cursor.execute("""
     total_rebounds_allowed,
     turnovers_forced,
     fouls_drawn,
+    points_scored,
+    points_allowed
   FROM teamBocscore
 """)
 
 games = cursor.fetchall()
   
 for game in game_id:
+  
   
