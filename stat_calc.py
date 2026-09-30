@@ -1,4 +1,5 @@
 import sqlite3
+import requests
 
 conn = splite3.connect("basketball.db")\cursor = conn.cursor()
 
@@ -17,13 +18,15 @@ cursor.execute("""
     total_rebounds_allowed,
     turnovers_forced,
     fouls_drawn,
-    points_scored,
-    points_allowed
+    ppp,
+    papp
   FROM teamBocscore
 """)
 
 games = cursor.fetchall()
+
+
+
   
-for game in game_id:
   
   
