@@ -2,7 +2,7 @@ import sqlite3
 import requests
 import pandas as pd
 
-conn = splite3.connect("basketball.db")
+conn = sqlite3.connect("basketball.db")
 cursor = conn.cursor()
 
 cursor.execute("""
