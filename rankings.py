@@ -22,7 +22,7 @@ cursor.execute("""
     fouls_drawn,
     ppp,
     papp
-  FROM teamBoxscore
+  FROM team_game_stats
 """)
 
 games = pd.DataFrame(cursor.fetchall(), columns=[
