@@ -42,95 +42,70 @@ games = pd.DataFrame(cursor.fetchall(), columns=[
   "ppp",
   "papp"
 ])
-opp_data = games.merge(
-  games,
-  on="game_id",
-  suffixes=("", "_opp")
-)
-
-opp_data = opp_data[
-  opp_data["team_id"] != opp_data["team_id_opp"]
-]
-
-opp_avg_ppp = opp_data.groupby("team_id")["ppp_opp"].mean()
-
-opp_avg_papp = opp_data.groupby("team_id")["papp_opp"].mean()
-
 team_data = games.groupby(["team_id"]).agg(
   ppp = ("ppp", "mean"),
   papp = ("papp", "mean"),
   games = ("game_id", "count")
 )
 
+matchups = games[["game_id", "team_id"]].merge(
+    games[["game_id", "team_id"]],
+    on="game_id",
+    suffixes=("", "_opp")
+)
+
+matchups = matchups[
+    matchups["team_id"] != matchups["team_id_opp"]
+]
+
+matchups = matchups.merge(
+    team_data[["ppp", "papp"]],
+    left_on="team_id_opp",
+    right_index=True,
+    suffixes=("", "_opp_season")
+)
+
+opp_avg_ppp = matchups.groupby("team_id")["ppp_opp_season"].mean()
+opp_avg_papp = matchups.groupby("team_id")["papp_opp_season"].mean()
+
 team_data["opp_avg_ppp"] = opp_avg_ppp
 team_data["opp_avg_papp"] = opp_avg_papp
 
 team_data["off_adj"] = (
-  (team_data["ppp"] / team_data["opp_avg_papp"])
+    team_data["ppp"] / team_data["opp_avg_papp"]
 )
 
 team_data["def_adj"] = (
-  (team_data["papp"] / team_data["opp_avg_ppp"])
-) 
-
-games = games.merge(
-  team_data[["off_adj","def_adj"]],
-  left_on = "game_id",
-  right_index=True
+    team_data["papp"] / team_data["opp_avg_ppp"]
 )
 
-opp_data = games.merge(
-  games,
-  on = "game_id",
-  suffixes = ("","_opp")
+matchups = matchups.merge(
+    team_data[["off_adj", "def_adj"]],
+    left_on="team_id_opp",
+    right_index=True,
+    suffixes=("", "_opp")
 )
 
-opp_data = opp_data[
-  opp_data["team_id"] != opp_data["team_id_opp"]
-]
+opp_avg_adj_def = matchups.groupby("team_id")["def_adj"].mean()
+opp_avg_adj_off = matchups.groupby("team_id")["off_adj"].mean()
 
-opp_avg_def = opp_data.groupby("team_id")["def_adj_opp"].mean()
-opp_avg_off = opp_data.groupby("team_id")["off_adj_opp"].mean()
-
-team_data["opp_avg_def"] = opp_avg_def
-team_data["opp_avg_off"] = opp_avg_off
+team_data["opp_avg_adj_def"] = opp_avg_adj_def
+team_data["opp_avg_adj_off"] = opp_avg_adj_off
 
 team_data["adj_ppp"] = (
-  team_data["ppp"] / team_data["opp_avg_def"]
+    team_data["ppp"] / team_data["opp_avg_adj_def"]
 )
 
 team_data["adj_papp"] = (
-  team_data["papp"] / team_data["opp_avg_off"]
+    team_data["papp"] / team_data["opp_avg_adj_off"]
 )
-
-games = games.merge(
-  team_data[["adj_ppp","adj_papp"]],
-  left_on = "game_id",
-  right_index=True
-)
-
-opp_data = games.merge(
-  games,
-  on = "game_id",
-  suffixes = ("","_opp")
-)
-
-opp_data = opp_data[
-  opp_data["team_id"] != opp_data["team_id_opp"]
-]
-
-opp_avg_adj_papp = opp_data.groupby("team_id")["adj_papp_opp"].mean()
-opp_avg_adj_ppp = opp_data.groupby("team_id")["adj_ppp_opp"].mean()
-
-team_data["opp_avg_adj_papp"] = opp_avg_adj_papp
-team_data["opp_avg_adj_ppp"] = opp_avg_adj_ppp
 
 team_data["sos_ppp"] = (
-  team_data["ppp"] / team_data["opp_avg_adj_papp"]
+    team_data["ppp"] / team_data["opp_avg_adj_def"]
 )
 
 team_data["sos_papp"] = (
-  team_data["papp"] / team_data["opp_avg_adj_ppp"]
+    team_data["papp"] / team_data["opp_avg_adj_off"]
 )
 
 print(team_data[["ppp", "papp", "off_adj", "def_adj", "sos_ppp", "sos_papp"]].head(20))
