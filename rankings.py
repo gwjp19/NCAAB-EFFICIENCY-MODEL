@@ -133,6 +133,8 @@ team_data["sos_papp"] = (
   team_data["papp"] / team_data["opp_avg_adj_ppp"]
 )
 
+print(team_data[["ppp", "papp", "off_adj", "def,adj", "sos_ppp", "sos_papp"]].head(20))
+
 print("Top Ten Offenses:")
 print(team_data.nlargest(10, "sos_ppp")[["sos_ppp"]])
 
