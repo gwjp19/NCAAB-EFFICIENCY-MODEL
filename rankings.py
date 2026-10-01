@@ -57,8 +57,8 @@ opp_avg_ppp = opp_data.groupby("team_id")["ppp_opp"].mean()
 opp_avg_papp = opp_data.groupby("team_id")["papp_opp"].mean()
 
 team_data = games.groupby(["team_id"]).agg(
-  ppp = ("ppp", "mean")
-  papp = ("papp", "mean")
+  ppp = ("ppp", "mean"),
+  papp = ("papp", "mean"),
   games = ("game_id", "count")
 )
 
@@ -81,7 +81,7 @@ games = games.merge(
 
 opp_data = games.merge(
   games,
-  on = "game_id"
+  on = "game_id",
   suffixes = ("","_opp")
 )
 
@@ -111,7 +111,7 @@ games = games.merge(
 
 opp_data = games.merge(
   games,
-  on = "game_id"
+  on = "game_id",
   suffixes = ("","_opp")
 )
 
