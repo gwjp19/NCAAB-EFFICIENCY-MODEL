@@ -59,10 +59,12 @@ matchups = matchups[
 ]
 
 matchups = matchups.merge(
-    team_data[["ppp", "papp"]],
+    team_data[["ppp", "papp"]].rename(columns={
+        "ppp" = "ppp_opp_season",
+        "papp" = "papp_opp_season"
+    }),
     left_on="team_id_opp",
     right_index=True,
-    suffixes=("", "_opp_season")
 )
 
 opp_avg_ppp = matchups.groupby("team_id")["ppp_opp_season"].mean()
@@ -80,10 +82,13 @@ team_data["def_adj"] = (
 )
 
 matchups = matchups.merge(
-    team_data[["off_adj", "def_adj"]],
+    team_data[["off_adj", "def_adj"]].rename(columns={
+        "off_adj" = "off_adj_opp",
+        "def_adj" = "def_adj_opp"
+    }),
     left_on="team_id_opp",
     right_index=True,
-    suffixes=("", "_opp")
+
 )
 
 opp_avg_adj_def = matchups.groupby("team_id")["def_adj"].mean()
