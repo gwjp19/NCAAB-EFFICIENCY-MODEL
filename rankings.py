@@ -7,22 +7,25 @@ cursor = conn.cursor()
 
 cursor.execute("""
   SELECT 
-    game_id,
-    team_id,
-    points,
-    field_goals_attempted,
-    offensive_rebounds,
-    total_rebounds,
-    turnovers,
-    personal_fouls,
-    field_goal_attempts_allowed,
-    offensive_rebounds_allowed,
-    total_rebounds_allowed,
-    turnovers_forced,
-    fouls_drawn,
-    ppp,
-    papp
-  FROM team_game_stats
+    tgs.game_id,
+    tgs.team_id,
+    tgs.points,
+    tgs.field_goals_attempted,
+    tgs.offensive_rebounds,
+    tgs.total_rebounds,
+    tgs.turnovers,
+    tgs.personal_fouls,
+    tgs.field_goal_attempts_allowed,
+    tgs.offensive_rebounds_allowed,
+    tgs.total_rebounds_allowed,
+    tgs.turnovers_forced,
+    tgs.fouls_drawn,
+    tgs.ppp,
+    tgs.papp,
+    t.team_name
+  FROM team_game_stats tgs
+  FROM teams t
+    ON tgs.team_id = t.id
 """)
 
 games = pd.DataFrame(cursor.fetchall(), columns=[
@@ -41,6 +44,7 @@ games = pd.DataFrame(cursor.fetchall(), columns=[
   "fouls_drawn",
   "ppp",
   "papp"
+  "team_name"
 ])
 team_data = games.groupby(["team_id"]).agg(
   ppp = ("ppp", "mean"),
@@ -48,6 +52,11 @@ team_data = games.groupby(["team_id"]).agg(
   games = ("game_id", "count")
 )
 
+team_data = team_data.merge(
+  games[["team_id", "team_name"]].drop_duplicates(),
+  on="team_id",
+  how="left"
+)
 matchups = games[["game_id", "team_id"]].merge(
     games[["game_id", "team_id"]],
     on="game_id",
@@ -116,16 +125,16 @@ team_data["sos_papp"] = (
 print(team_data[["ppp", "papp", "off_adj", "def_adj", "sos_ppp", "sos_papp"]].head(20))
 
 print("Top Ten Offenses:")
-print(team_data.nlargest(10, "sos_ppp")[["sos_ppp"]])
+print(team_data.nlargest(10, "sos_ppp")[["team_name", "sos_ppp"]])
 
 print("Bottoms Ten Offenses")
-print(team_data.nsmallest(10, "sos_ppp")[["sos_ppp"]])
+print(team_data.nsmallest(10, "sos_ppp")[["team_name", "sos_ppp"]])
 
 print("Bottom Ten Defenses:")
-print(team_data.nlargest(10, "sos_papp")[["sos_papp"]])
+print(team_data.nlargest(10, "sos_papp")[["team_name", "sos_papp"]])
 
 print("Top Ten Defenses")
-print(team_data.nsmallest(10, "sos_papp")[["sos_papp"]])
+print(team_data.nsmallest(10, "sos_papp")[["team_name", "sos_papp"]])
 
 
   
