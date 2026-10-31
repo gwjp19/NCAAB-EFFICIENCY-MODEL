@@ -1,14 +1,17 @@
 import sqlite3
 import requests
 import pandas as pd
+import numpy as np
 
-conn = sqlite3.connect("basketball.db")
+conn = sqlite3.connect("2025database.db")
 cursor = conn.cursor()
 
 cursor.execute("""
   SELECT 
     tgs.game_id,
     tgs.team_id,
+    tgs.game_date,
+    tgs.home_team_id,
     tgs.points,
     tgs.field_goals_attempted,
     tgs.offensive_rebounds,
@@ -31,13 +34,15 @@ cursor.execute("""
 games = pd.DataFrame(cursor.fetchall(), columns=[
   "game_id",
   "team_id",
+  "game_date",
+  "home_team_id",
   "points",
-  "field_goals_attempted",
+  "feild_goals_attempted",
   "offensive_rebounds",
   "total_rebounds",
   "turnovers",
   "personal_fouls",
-  "field_goal_attempts_allowed",
+  "feild_goal_attempts_allowed",
   "offensive_rebounds_allowed",
   "total_rebounds_allowed",
   "turnovers_forced",
@@ -46,11 +51,24 @@ games = pd.DataFrame(cursor.fetchall(), columns=[
   "papp",
   "team_name"
 ])
-team_data = games.groupby(["team_id"]).agg(
-  ppp = ("ppp", "mean"),
-  papp = ("papp", "mean"),
-  games = ("game_id", "count")
+
+HFA = 0.0134
+
+is_home = games["home_team_id"] == games["team_id"]
+is_neutral = games["home_team_id"].isna()
+side = np.where(is_neutral, 0, np.where(is_home, 1, -1))
+
+games["fix_ppp"]  = games["ppp"]  - side * HFA
+games["fix_papp"] = games["papp"] + side * HFA
+
+team_data = games.groupby("team_id").agg(
+    games=("game_id", "count"),
+    ppp=("fix_ppp", "sum"),
+    papp=("fix_papp", "sum"),
 ).reset_index()
+
+team_data["ppp"]  = team_data["ppp"]  / team_data["games"]
+team_data["papp"] = team_data["papp"] / team_data["games"]
 
 team_data = team_data.merge(
   games[["team_id", "team_name"]].drop_duplicates(),
@@ -66,6 +84,7 @@ matchups = games[["game_id", "team_id"]].merge(
 matchups = matchups[
     matchups["team_id"] != matchups["team_id_opp"]
 ]
+
 
 matchups = matchups.merge(
     team_data[["team_id", "ppp", "papp"]].rename(columns={
@@ -141,16 +160,39 @@ team_data["sos_papp"] = (
     team_data["papp"] / team_data["opp_avg_adj_off"]
 )
 
-#print(team_data[["ppp", "papp", "off_adj", "def_adj", "sos_ppp", "sos_papp"]].head(20))
+matchups = matchups.merge(
+  team_data[["team_id", "sos_ppp", "sos_papp"]].rename(columns={
+    "team_id": "team_id_opp",
+    "sos_ppp": "opp_sos_ppp",
+    "sos_papp": "opp_sos_papp"
+    }),
+    on="team_id_opp",
+    how="left"
+)
 
-print("Top Ten Offenses:")
-print(team_data.nlargest(20, "sos_ppp")[["team_name", "sos_ppp"]])
+opp_avg_sos_ppp = matchups.groupby("team_id")["opp_sos_ppp"].mean()
+opp_avg_sos_papp = matchups.groupby("team_id")["opp_sos_papp"].mean()
 
-print("Bottoms Ten Offenses")
-print(team_data.nsmallest(20, "sos_ppp")[["team_name", "sos_ppp"]])
+team_data = team_data.merge(
+  opp_avg_sos_ppp.rename("opp_avg_sos_ppp"),
+  on="team_id",
+  how="left"
+)
 
-print("Bottom Ten Defenses:")
-print(team_data.nlargest(20, "sos_papp")[["team_name", "sos_papp"]])
+team_data = team_data.merge(
+  opp_avg_sos_papp.rename("opp_avg_sos_papp"),
+  on="team_id",
+  how="left"
+)
 
-print("Top Ten Defenses")
-print(team_data.nsmallest(20, "sos_papp")[["team_name", "sos_papp"]])
+matchups = matchups.merge(
+  team_data[["team_id","opp_avg_sos_papp","opp_avg_sos_ppp"]].rename(columns={
+    "team_id": "team_id_opp"}),
+  on="team_id_opp",
+  how="left"
+)
+games = games.merge(
+  matchups[["game_id", "team_id", "opp_avg_sos_papp", "opp_avg_sos_ppp"]],
+  on=["game_id", "team_id"],
+  how = "left"
+)
